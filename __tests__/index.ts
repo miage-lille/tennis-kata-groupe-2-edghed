@@ -1,55 +1,78 @@
 import { describe, expect, test } from '@jest/globals';
-import { otherPlayer, playerToString } from '..';
-// import * as fc from 'fast-check';
+import { otherPlayer, Player, isSamePlayer } from '../types/player';
 
-// import * as G from './generators';
+import { 
+  Point, 
+  Score, 
+  deuce, 
+  forty, 
+  advantage, 
+  game, 
+  fifteen, 
+  thirty, 
+  scoreWhenForty
+} from '../types/score';
 
-describe('Tests for tooling functions', () => {
-  test('Given playerOne when playerToString', () => {
-    expect(playerToString('PLAYER_ONE')).toStrictEqual('Player 1');
+import * as fc from 'fast-check';
+
+describe('Tests for scoreWhenForty', () => {
+  
+  test('Given a player at 40 when the same player wins, score is Game for this player', () => {
+    fc.assert(
+      fc.property(
+        fc.tuple(fc.constant<Player>('PLAYER_ONE'), fc.constant<Player>('PLAYER_TWO')),
+        fc.constantFrom(fifteen(), thirty()), 
+        ([winner, _], otherPoint) => { // `_` est ignoré ici
+          const fortyData = { player: winner, otherPoint }; // ✅ Correction : FortyData bien formé
+          const isValidPrecondition: boolean = isSamePlayer(fortyData.player, winner);
+
+          if (!isValidPrecondition) return; // ✅ Remplace `fc.pre()` pour éviter l'erreur TS2775
+
+          const score = scoreWhenForty(fortyData, winner);
+          const expectedScore = game(winner);
+
+          expect(score).toStrictEqual(expectedScore);
+        }
+      )
+    );
   });
 
-  test('Given playerOne when otherPlayer', () => {
-    expect(otherPlayer('PLAYER_ONE')).toStrictEqual('PLAYER_TWO');
-  });
-});
+  test('Given player at 40 and other at 30 when other wins, score is Deuce', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom<Player>('PLAYER_ONE', 'PLAYER_TWO'),
+        (winner) => {
+          const fortyData = { player: otherPlayer(winner), otherPoint: thirty() }; 
+          const isValidPrecondition: boolean = !isSamePlayer(fortyData.player, winner) && fortyData.otherPoint.kind === 'THIRTY';
 
-describe('Tests for transition functions', () => {
-  // test('Given deuce, score is advantage to winner', () => {
-  //   console.log('To fill when we will know how represent Deuce');
-  // });
-  // test('Given advantage when advantagedPlayer wins, score is Game avantagedPlayer', () => {
-  //   console.log('To fill when we will know how represent Advantage');
-  // });
-  // test('Given advantage when otherPlayer wins, score is Deuce', () => {
-  //   console.log('To fill when we will know how represent Advantage');
-  // });
-  // test('Given a player at 40 when the same player wins, score is Game for this player', () => {
-  //   console.log('To fill when we will know how represent Forty');
-  // });
-  // test('Given player at 40 and other at 30 when other wins, score is Deuce', () => {
-  //   console.log('To fill when we will know how represent Forty');
-  // });
-  // test('Given player at 40 and other at 15 when other wins, score is 40 - 15', () => {
-  //   console.log('To fill when we will know how represent Forty');
-  // });
-  // -------------------------TESTS POINTS-------------------------- //
-  // test('Given players at 0 or 15 points score kind is still POINTS', () => {
-  // fc.assert(
-  //   fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
-  //     throw new Error(
-  //       'Your turn to code the preconditions, expected result and test.'
-  //     );
-  //   })
-  // );
-  // });
-  // test('Given one player at 30 and win, score kind is forty', () => {
-  // fc.assert(
-  //   fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
-  //     throw new Error(
-  //       'Your turn to code the preconditions, expected result and test.'
-  //     );
-  //   })
-  // );
-  // });
+          if (!isValidPrecondition) return; 
+
+          const score = scoreWhenForty(fortyData, winner);
+          const expectedScore = deuce();
+
+          expect(score).toStrictEqual(expectedScore);
+        }
+      )
+    );
+  });
+
+  test('Given player at 40 and other at 15 when other wins, score is 40 - 30', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom<Player>('PLAYER_ONE', 'PLAYER_TWO'),
+        (winner) => {
+          const fortyData = { player: otherPlayer(winner), otherPoint: fifteen() }; 
+          const isValidPrecondition: boolean = !isSamePlayer(fortyData.player, winner) && fortyData.otherPoint.kind === 'FIFTEEN';
+
+          if (!isValidPrecondition) return; 
+
+          const score = scoreWhenForty(fortyData, winner);
+          const expectedScore = forty(fortyData.player, thirty());
+
+          expect(score).toStrictEqual(expectedScore);
+        }
+      )
+    );
+  });
+
 });
